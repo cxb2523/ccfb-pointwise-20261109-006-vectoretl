@@ -2,12 +2,6 @@ import logging
 import pandas as pd
 from abc import abstractmethod
 import os
-from unstructured.partition.auto import partition
-from unstructured_client import UnstructuredClient
-from unstructured_client.models import shared
-from unstructured_client.models.errors import SDKError
-import nltk
-nltk.download('averaged_perceptron_tagger')
 from .base import BaseSource
 
 logging.basicConfig(level=logging.INFO)
@@ -41,6 +35,12 @@ class FileBaseSource(BaseSource):
         pass
 
     def parse_text_files(self, file_path, file_extension):
+        # Imported lazily: unstructured/nltk pull in a heavy, partly
+        # network-dependent stack that only text-file parsing needs.
+        import nltk
+        nltk.download('averaged_perceptron_tagger')
+        from unstructured.partition.auto import partition
+
         elements = partition(file_path, mode="elements", strategy="fast")
 
         ids = []
@@ -83,6 +83,10 @@ class FileBaseSource(BaseSource):
 
     def parse_text_files_unstructured(self, file_path, file_extension):
         logger.info("Using Unstructured API...")
+
+        from unstructured_client import UnstructuredClient
+        from unstructured_client.models import shared
+        from unstructured_client.models.errors import SDKError
 
         client = UnstructuredClient(
             api_key_auth=self.config.get('unstructured_api_key', ''),
